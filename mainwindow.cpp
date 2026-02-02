@@ -12,16 +12,13 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("Word Counter");
     setMinimumSize(600, 600);
 
-    // Central widget
     QWidget *central = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(central);
 
-    // File label
     fileLabel = new QLabel("No file selected", this);
     fileLabel->setStyleSheet("font-size: 14px; color: #666;");
     layout->addWidget(fileLabel);
 
-    // Upload button
     uploadButton = new QPushButton("📁 Upload File", this);
     uploadButton->setMinimumHeight(50);
     uploadButton->setStyleSheet(
@@ -36,7 +33,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(uploadButton, &QPushButton::clicked, this, &MainWindow::selectFile);
     layout->addWidget(uploadButton);
 
-    // Run button
     runButton = new QPushButton("▶️ RUN!", this);
     runButton->setMinimumHeight(50);
     runButton->setEnabled(false);
@@ -53,7 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(runButton, &QPushButton::clicked, this, &MainWindow::runAnalysis);
     layout->addWidget(runButton);
 
-    // Output display
     outputDisplay = new QTextEdit(this);
     outputDisplay->setReadOnly(true);
     outputDisplay->setFont(QFont("Courier", 12));
