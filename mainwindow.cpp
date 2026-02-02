@@ -118,7 +118,6 @@ void MainWindow::processFile()
     std::sort(sorted.begin(), sorted.end(),
               [](const auto &a, const auto &b) { return a.first < b.first; });
 
-    // Display results
     QString result = "=== RESULTS ===\n\n";
     result += QString("Total words: %1\n").arg(totalWords);
     result += QString("Unique words: %1\n\n").arg(wordCounts.size());
