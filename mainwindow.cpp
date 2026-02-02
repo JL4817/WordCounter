@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <cctype>
 
+using namespace std;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -128,18 +130,18 @@ void MainWindow::processFile()
 {
     wordCounts.clear();
 
-    std::ifstream file(selectedFile.toStdString());
+    ifstream file(selectedFile.toStdString());
     if (!file.is_open()) {
         outputDisplay->setText("ERROR: Could not open file!");
         return;
     }
 
-    std::string word;
+    string word;
     int totalWords = 0;
 
     // Read and count words
     while (file >> word) {
-        std::string cleaned = cleanWord(word);
+        string cleaned = cleanWord(word);
         if (!cleaned.empty()) {
             wordCounts[cleaned]++;
             totalWords++;
@@ -148,7 +150,7 @@ void MainWindow::processFile()
     file.close();
 
     // Put into vector for sorting
-    std::vector<std::pair<std::string, int>> wordList;
+    vector<pair<string, int>> wordList;
     for (auto& pair : wordCounts) {
         wordList.push_back(pair);
     }
@@ -156,13 +158,13 @@ void MainWindow::processFile()
     // Sort based on checkbox
     if (showTopWordsCheck->isChecked()) {
         // Sort by frequency, then alphabetically
-        std::sort(wordList.begin(), wordList.end(),
-                  [](const auto &a, const auto &b) {
-                      if (a.second != b.second) {
-                          return a.second > b.second;  // higher count first
-                      }
-                      return a.first < b.first;  // alphabetical for ties
-                  });
+        sort(wordList.begin(), wordList.end(),
+             [](const auto &a, const auto &b) {
+                 if (a.second != b.second) {
+                     return a.second > b.second;  // higher count first
+                 }
+                 return a.first < b.first;  // alphabetical for ties
+             });
 
         // Only keep top N
         int topN = topNSlider->value();
@@ -171,10 +173,10 @@ void MainWindow::processFile()
         }
     } else {
         // Alphabetical sort
-        std::sort(wordList.begin(), wordList.end(),
-                  [](const auto &a, const auto &b) {
-                      return a.first < b.first;
-                  });
+        sort(wordList.begin(), wordList.end(),
+             [](const auto &a, const auto &b) {
+                 return a.first < b.first;
+             });
     }
 
     // Display results
@@ -198,12 +200,12 @@ void MainWindow::processFile()
     outputDisplay->setText(output);
 }
 
-std::string MainWindow::cleanWord(const std::string &word)
+string MainWindow::cleanWord(const string &word)
 {
-    std::string result;
+    string result;
     for (char c : word) {
-        if (std::isalpha(c)) {
-            result += std::tolower(c);
+        if (isalpha(c)) {
+            result += tolower(c);
         }
     }
     return result;
