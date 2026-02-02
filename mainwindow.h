@@ -5,6 +5,8 @@
 #include <QPushButton>
 #include <QTextEdit>
 #include <QLabel>
+#include <QCheckBox>
+#include <QSlider>
 #include <map>
 #include <string>
 
@@ -19,21 +21,22 @@ public:
 private slots:
     void selectFile();
     void runAnalysis();
+    void updateSliderLabel(int value);
 
 private:
-    // UI Components
     QPushButton *uploadButton;
     QPushButton *runButton;
     QTextEdit *outputDisplay;
     QLabel *fileLabel;
+    QCheckBox *showTopWordsCheck;
+    QSlider *topNSlider;
+    QLabel *sliderValueLabel;
 
-    // Data
     std::map<std::string, int> wordCounts;
     QString selectedFile;
 
-    // Helper functions
     void processFile();
     std::string cleanWord(const std::string &word);
 };
 
-#endif // MAINWINDOW_H
+#endif

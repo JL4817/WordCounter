@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <fstream>
@@ -10,7 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Word Counter");
-    setMinimumSize(600, 600);
+    setMinimumSize(600, 650);
 
     QWidget *central = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(central);
@@ -32,6 +33,57 @@ MainWindow::MainWindow(QWidget *parent)
         );
     connect(uploadButton, &QPushButton::clicked, this, &MainWindow::selectFile);
     layout->addWidget(uploadButton);
+
+    showTopWordsCheck = new QCheckBox("Show only top words", this);
+    showTopWordsCheck->setStyleSheet("font-size: 14px; font-weight: bold;");
+    layout->addWidget(showTopWordsCheck);
+
+    QHBoxLayout *sliderLayout = new QHBoxLayout();
+
+    QLabel *minLabel = new QLabel("5", this);
+    minLabel->setStyleSheet("font-size: 12px; color: #666;");
+    sliderLayout->addWidget(minLabel);
+
+    topNSlider = new QSlider(Qt::Horizontal, this);
+    topNSlider->setMinimum(5);
+    topNSlider->setMaximum(50);
+    topNSlider->setValue(10);
+    topNSlider->setTickPosition(QSlider::TicksBelow);
+    topNSlider->setTickInterval(5);
+    topNSlider->setStyleSheet(
+        "QSlider::groove:horizontal {"
+        "   height: 8px;"
+        "   background: #ddd;"
+        "   border-radius: 4px;"
+        "}"
+        "QSlider::handle:horizontal {"
+        "   background: #2196F3;"
+        "   border: 2px solid #1976D2;"
+        "   width: 18px;"
+        "   height: 18px;"
+        "   margin: -6px 0;"
+        "   border-radius: 9px;"
+        "}"
+        "QSlider::handle:horizontal:hover {"
+        "   background: #1976D2;"
+        "}"
+        );
+    sliderLayout->addWidget(topNSlider);
+
+    QLabel *maxLabel = new QLabel("50", this);
+    maxLabel->setStyleSheet("font-size: 12px; color: #666;");
+    sliderLayout->addWidget(maxLabel);
+
+    sliderValueLabel = new QLabel("10 words", this);
+    sliderValueLabel->setStyleSheet(
+        "font-size: 16px; font-weight: bold; color: #2196F3; min-width: 80px;"
+        );
+    sliderValueLabel->setAlignment(Qt::AlignCenter);
+    sliderLayout->addWidget(sliderValueLabel);
+
+    layout->addLayout(sliderLayout);
+
+    connect(topNSlider, &QSlider::valueChanged, this, &MainWindow::updateSliderLabel);
 
     runButton = new QPushButton("▶️ RUN!", this);
     runButton->setMinimumHeight(50);
@@ -60,6 +112,11 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::updateSliderLabel(int value)
+{
+    sliderValueLabel->setText(QString::number(value) + " words");
 }
 
 void MainWindow::selectFile()
@@ -103,7 +160,6 @@ void MainWindow::processFile()
     // Count words
     std::string word;
     int totalWords = 0;
-
     while (file >> word) {
         std::string cleaned = cleanWord(word);
         if (!cleaned.empty()) {
@@ -113,14 +169,45 @@ void MainWindow::processFile()
     }
     file.close();
 
-    // Sort alphabetically
+    // Sort words
     std::vector<std::pair<std::string, int>> sorted(wordCounts.begin(), wordCounts.end());
-    std::sort(sorted.begin(), sorted.end(),
-              [](const auto &a, const auto &b) { return a.first < b.first; });
+
+    // Check if we should show top words by frequency
+    if (showTopWordsCheck->isChecked()) {
+        // Sort by count, then by alphabetically for words with same count
+        std::sort(sorted.begin(), sorted.end(),
+                  [](const auto &a, const auto &b) {
+                      if (a.second == b.second) {
+                          // If counts are equal, sort alphabetically
+                          return a.first < b.first;
+                      }
+                      // Otherwise sort by count (from descending order)
+                      return a.second > b.second;
+                  });
+
+        // Keep only top N words
+        int topN = topNSlider->value();
+        if (sorted.size() > static_cast<size_t>(topN)) {
+            sorted.resize(topN);
+        }
+    } else {
+        // Sort alphabetically
+        std::sort(sorted.begin(), sorted.end(),
+                  [](const auto &a, const auto &b) {
+                      return a.first < b.first;
+                  });
+    }
 
     QString result = "=== RESULTS ===\n\n";
     result += QString("Total words: %1\n").arg(totalWords);
     result += QString("Unique words: %1\n\n").arg(wordCounts.size());
+
+    if (showTopWordsCheck->isChecked()) {
+        result += QString("TOP %1 MOST USED WORDS\n").arg(topNSlider->value());
+    } else {
+        result += "ALL WORDS (ALPHABETICALLY)\n";
+    }
+
     result += "WORD                    COUNT\n";
     result += "--------------------------------\n";
 
