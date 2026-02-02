@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     fileLabel->setStyleSheet("font-size: 14px; color: #666;");
     layout->addWidget(fileLabel);
 
-    uploadButton = new QPushButton("📁 Upload File", this);
+    uploadButton = new QPushButton("Upload File", this);
     uploadButton->setMinimumHeight(50);
     uploadButton->setStyleSheet(
         "QPushButton {"
@@ -35,13 +35,12 @@ MainWindow::MainWindow(QWidget *parent)
     layout->addWidget(uploadButton);
 
     showTopWordsCheck = new QCheckBox("Show only top words", this);
-    showTopWordsCheck->setStyleSheet("font-size: 14px; font-weight: bold;");
+    showTopWordsCheck->setStyleSheet("font-size: 14px;");
     layout->addWidget(showTopWordsCheck);
 
     QHBoxLayout *sliderLayout = new QHBoxLayout();
 
     QLabel *minLabel = new QLabel("5", this);
-    minLabel->setStyleSheet("font-size: 12px; color: #666;");
     sliderLayout->addWidget(minLabel);
 
     topNSlider = new QSlider(Qt::Horizontal, this);
@@ -50,42 +49,20 @@ MainWindow::MainWindow(QWidget *parent)
     topNSlider->setValue(10);
     topNSlider->setTickPosition(QSlider::TicksBelow);
     topNSlider->setTickInterval(5);
-    topNSlider->setStyleSheet(
-        "QSlider::groove:horizontal {"
-        "   height: 8px;"
-        "   background: #ddd;"
-        "   border-radius: 4px;"
-        "}"
-        "QSlider::handle:horizontal {"
-        "   background: #2196F3;"
-        "   border: 2px solid #1976D2;"
-        "   width: 18px;"
-        "   height: 18px;"
-        "   margin: -6px 0;"
-        "   border-radius: 9px;"
-        "}"
-        "QSlider::handle:horizontal:hover {"
-        "   background: #1976D2;"
-        "}"
-        );
     sliderLayout->addWidget(topNSlider);
 
     QLabel *maxLabel = new QLabel("50", this);
-    maxLabel->setStyleSheet("font-size: 12px; color: #666;");
     sliderLayout->addWidget(maxLabel);
 
     sliderValueLabel = new QLabel("10 words", this);
-    sliderValueLabel->setStyleSheet(
-        "font-size: 16px; font-weight: bold; color: #2196F3; min-width: 80px;"
-        );
-    sliderValueLabel->setAlignment(Qt::AlignCenter);
+    sliderValueLabel->setStyleSheet("font-weight: bold; color: #2196F3;");
     sliderLayout->addWidget(sliderValueLabel);
 
     layout->addLayout(sliderLayout);
 
     connect(topNSlider, &QSlider::valueChanged, this, &MainWindow::updateSliderLabel);
 
-    runButton = new QPushButton("▶️ RUN!", this);
+    runButton = new QPushButton("RUN", this);
     runButton->setMinimumHeight(50);
     runButton->setEnabled(false);
     runButton->setStyleSheet(
@@ -103,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     outputDisplay = new QTextEdit(this);
     outputDisplay->setReadOnly(true);
-    outputDisplay->setFont(QFont("Courier", 12));
+    outputDisplay->setFont(QFont("Courier", 11));
     outputDisplay->setStyleSheet("background-color: #f5f5f5; padding: 10px;");
     layout->addWidget(outputDisplay);
 
@@ -130,16 +107,16 @@ void MainWindow::selectFile()
 
     if (!file.isEmpty()) {
         selectedFile = file;
-        fileLabel->setText("File: " + file);
+        fileLabel->setText("Selected: " + file);
         runButton->setEnabled(true);
-        outputDisplay->setText("File loaded! Click RUN to analyze.");
+        outputDisplay->setText("File ready. Press RUN to analyze.");
     }
 }
 
 void MainWindow::runAnalysis()
 {
     if (selectedFile.isEmpty()) {
-        QMessageBox::warning(this, "Error", "No file selected!");
+        QMessageBox::warning(this, "Error", "Please select a file first!");
         return;
     }
 
@@ -157,9 +134,10 @@ void MainWindow::processFile()
         return;
     }
 
-    // Count words
     std::string word;
     int totalWords = 0;
+
+    // Read and count words
     while (file >> word) {
         std::string cleaned = cleanWord(word);
         if (!cleaned.empty()) {
@@ -169,62 +147,64 @@ void MainWindow::processFile()
     }
     file.close();
 
-    // Sort words
-    std::vector<std::pair<std::string, int>> sorted(wordCounts.begin(), wordCounts.end());
+    // Put into vector for sorting
+    std::vector<std::pair<std::string, int>> wordList;
+    for (auto& pair : wordCounts) {
+        wordList.push_back(pair);
+    }
 
-    // Check if we should show top words by frequency
+    // Sort based on checkbox
     if (showTopWordsCheck->isChecked()) {
-        // Sort by count, then by alphabetically for words with same count
-        std::sort(sorted.begin(), sorted.end(),
+        // Sort by frequency, then alphabetically
+        std::sort(wordList.begin(), wordList.end(),
                   [](const auto &a, const auto &b) {
-                      if (a.second == b.second) {
-                          // If counts are equal, sort alphabetically
-                          return a.first < b.first;
+                      if (a.second != b.second) {
+                          return a.second > b.second;  // higher count first
                       }
-                      // Otherwise sort by count (from descending order)
-                      return a.second > b.second;
+                      return a.first < b.first;  // alphabetical for ties
                   });
 
-        // Keep only top N words
+        // Only keep top N
         int topN = topNSlider->value();
-        if (sorted.size() > static_cast<size_t>(topN)) {
-            sorted.resize(topN);
+        if (wordList.size() > topN) {
+            wordList.resize(topN);
         }
     } else {
-        // Sort alphabetically
-        std::sort(sorted.begin(), sorted.end(),
+        // Alphabetical sort
+        std::sort(wordList.begin(), wordList.end(),
                   [](const auto &a, const auto &b) {
                       return a.first < b.first;
                   });
     }
 
-    QString result = "=== RESULTS ===\n\n";
-    result += QString("Total words: %1\n").arg(totalWords);
-    result += QString("Unique words: %1\n\n").arg(wordCounts.size());
+    // Display results
+    QString output = "=== RESULTS ===\n\n";
+    output += "Total words: " + QString::number(totalWords) + "\n";
+    output += "Unique words: " + QString::number(wordCounts.size()) + "\n\n";
 
     if (showTopWordsCheck->isChecked()) {
-        result += QString("TOP %1 MOST USED WORDS\n").arg(topNSlider->value());
+        output += "TOP " + QString::number(topNSlider->value()) + " MOST COMMON WORDS\n";
     } else {
-        result += "ALL WORDS (ALPHABETICALLY)\n";
+        output += "ALL WORDS (A-Z)\n";
     }
 
-    result += "WORD                    COUNT\n";
-    result += "--------------------------------\n";
+    output += "--------------------------------\n";
 
-    for (const auto &p : sorted) {
-        result += QString::fromStdString(p.first) + " - " + QString::number(p.second) + " times\n";
+    for (size_t i = 0; i < wordList.size(); i++) {
+        output += QString::fromStdString(wordList[i].first);
+        output += " - " + QString::number(wordList[i].second) + " times\n";
     }
 
-    outputDisplay->setText(result);
+    outputDisplay->setText(output);
 }
 
 std::string MainWindow::cleanWord(const std::string &word)
 {
-    std::string cleaned;
+    std::string result;
     for (char c : word) {
         if (std::isalpha(c)) {
-            cleaned += std::tolower(c);
+            result += std::tolower(c);
         }
     }
-    return cleaned;
+    return result;
 }
